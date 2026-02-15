@@ -82,7 +82,11 @@ struct LogChartView: View {
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.12))
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
-                        Text(date.formatted(.dateTime.weekday(.abbreviated)))
+                        Text(date.formatted(.dateTime.weekday(.narrow)))
+                            // 英語（Sun/Mon...）だと右端が省略されやすいので、1文字表記にする
+                            .frame(width: 16, alignment: .center)
+                            .lineLimit(1)
+                            .offset(x: -12) // 微調整（必要なら 0〜-6 で調整）
                     }
                 }
                 .font(.system(.caption2, design: .rounded))
