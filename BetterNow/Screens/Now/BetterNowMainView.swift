@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Better Now - Main Screen (SwiftUI)
 /// - String Catalog (Localizable.xcstrings) 前提：Text("key") の形でキーを参照
@@ -17,16 +18,14 @@ struct BetterNowMainView: View {
     @State private var choice: BetterChoice? = nil
     @StateObject private var store = EntryStore()
     
-    @State private var showSavedToast: Bool = false
     @State private var showSettings = false
     @State private var showLog: Bool = false
     
     // すでにEntry済かどうかの判定
     @State private var existingEntry: BetterEntry? = nil
-    
-    @FocusState private var focus: FocusField?
 
-    enum FocusField { case caption }
+    // キーボード表示状態（背景タップで閉じる＆誤タップ防止用）
+    @State private var isKeyboardVisible: Bool = false
 
     var body: some View {
         ZStack {
@@ -38,7 +37,7 @@ struct BetterNowMainView: View {
                 ChoiceButtonsView(choice: $choice)
                 MainCaptionFieldView(caption: $caption)
                 MainFooterButtonsView(
-                    primaryTitle: LocalizedStringKey(primaryButtonTitleKey),
+                    primaryTitle: primaryButtonTitleKey,
                     canSave: canSave,
                     onClear: { clearInputs() },
                     onSave: { saveEntry() }
@@ -47,47 +46,31 @@ struct BetterNowMainView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)
-            .toolbar { keyboardToolbar }
             .sheet(isPresented: $showLog) {
                 LogView(store: store)
             }
             .sheet(isPresented: $showSettings) { SettingsView(store: store) }
             .onAppear {
-                applyExistingEntryIfNeeded()
-            }
-            .onAppear {
                 loadTodayIfExists()
             }
-        }
-        .overlay(alignment: .top) { toast }
-    }
 
-    // MARK: - UI
-
-    @ToolbarContentBuilder
-    private var keyboardToolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .keyboard) {
-            Spacer()
-            Button("done_button") { // "Done"
-                focus = nil
+            // キーボード表示中は画面全体を透明レイヤーで覆う
+            // → 背景タップでキーボードを閉じる & 下のボタン誤タップを防ぐ
+            if isKeyboardVisible {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        dismissKeyboard()
+                    }
             }
         }
-    }
-
-    private var toast: some View {
-        Group {
-            if showSavedToast {
-                Text("saved_toast") // "Saved."
-                    .font(.system(.footnote, design: .rounded).weight(.medium))
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 14)
-                    .background(Capsule().fill(Color.primary.opacity(0.10)))
-                    .foregroundStyle(.primary)
-                    .padding(.top, 10)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
         }
-        .animation(.easeOut(duration: 0.18), value: showSavedToast)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
+        }
     }
 
     // MARK: - Logic
@@ -107,11 +90,11 @@ struct BetterNowMainView: View {
         let captionChanged = captionNow != existingEntry.caption
         let choiceChanged = choice != existingEntry.choice
 
-        // 指定どおりなら「caption or choice」だけで判定したいのでこう：
+        // caption or choiceで判定
         return captionChanged || choiceChanged
     }
 
-    private var primaryButtonTitleKey: String {
+    private var primaryButtonTitleKey: LocalizedStringKey {
         isUpdateMode ? "update_button" : "save_button"
     }
 
@@ -130,7 +113,6 @@ struct BetterNowMainView: View {
     private func saveEntry() {
         guard let choice else { return }
 
-        // TODO: SwiftData / CoreData / UserDefaults に差し替え
         store.save(
             choice: choice,
             caption: caption
@@ -144,20 +126,12 @@ struct BetterNowMainView: View {
         showLog = true
     }
 
-    private func clearInputs(keepKeyboard: Bool = false) {
+    private func clearInputs() {
         caption = ""
         choice = nil
-
-//        focus = keepKeyboard ? .action : nil
     }
     
-    private func applyExistingEntryIfNeeded() {
-        guard let entry = store.entry(for: .now) else { return }
-
-        // 既に今日の入力があれば、UIに反映
-        caption = entry.caption
-        choice = entry.choice
-    }
+    // 既に今日の入力があれば、UIに反映
     private func loadTodayIfExists() {
         guard let entry = store.entry(for: .now) else {
             existingEntry = nil
@@ -166,6 +140,14 @@ struct BetterNowMainView: View {
         existingEntry = entry
         caption = entry.caption
         choice = entry.choice
+    }
+
+    /// キーボードを閉じる（フォーカス中の入力を終了）
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                        to: nil,
+                                        from: nil,
+                                        for: nil)
     }
 }
 
