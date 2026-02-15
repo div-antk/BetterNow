@@ -75,4 +75,10 @@ final class EntryStore: ObservableObject {
             // print("persist error:", error)
         }
     }
+    
+    // 今日のEntryを取得
+    func entry(for date: Date = .now) -> BetterEntry? {
+        let id = DateFormatters.dayKey(date)
+        return entries.first(where: { $0.id == id })
+    }
 }

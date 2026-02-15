@@ -20,7 +20,9 @@ struct BetterNowMainView: View {
     
     @State private var showSavedToast: Bool = false
     @State private var showLog: Bool = false
-
+    // すでにEntry済かどうかの判定
+    @State private var existingEntry: BetterEntry? = nil
+    
     @FocusState private var focus: FocusField?
 
     enum FocusField { case action, caption }
@@ -35,6 +37,7 @@ struct BetterNowMainView: View {
                 ChoiceButtonsView(choice: $choice)
                 MainCaptionFieldView(caption: $caption)
                 MainFooterButtonsView(
+                    primaryTitle: LocalizedStringKey(primaryButtonTitleKey),
                     canSave: canSave,
                     onClear: { clearInputs() },
                     onSave: { saveEntry() }
@@ -47,23 +50,17 @@ struct BetterNowMainView: View {
             .sheet(isPresented: $showLog) {
                 LogView(store: store)
             }
+            .onAppear {
+                applyExistingEntryIfNeeded()
+            }
+            .onAppear {
+                loadTodayIfExists()
+            }
         }
         .overlay(alignment: .top) { toast }
     }
 
     // MARK: - UI
-
-    /// 仮のログ画面
-    private struct PlaceholderLogView: View {
-        var body: some View {
-            NavigationStack {
-                Text("log_placeholder") // String Catalogに追加しておくと便利
-                    .foregroundStyle(.secondary)
-                    .navigationTitle("log_title") // e.g. "Log"
-                    .navigationBarTitleDisplayMode(.inline)
-            }
-        }
-    }
 
     @ToolbarContentBuilder
     private var keyboardToolbar: some ToolbarContent {
@@ -93,9 +90,40 @@ struct BetterNowMainView: View {
 
     // MARK: - Logic
 
+    private var isUpdateMode: Bool {
+        existingEntry != nil
+    }
+
+    private var hasChanges: Bool {
+        guard let existingEntry else {
+            // 新規保存モードは「choiceがあれば保存可能」でOK
+            return true
+        }
+
+        // 変更判定（トリムして比較）
+        let actionNow = todayAction.trimmingCharacters(in: .whitespacesAndNewlines)
+        let captionNow = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let captionChanged = captionNow != existingEntry.caption
+        let choiceChanged = choice != existingEntry.choice
+
+        // 指定どおりなら「caption or choice」だけで判定したいのでこう：
+        return captionChanged || choiceChanged
+    }
+
+    private var primaryButtonTitleKey: String {
+        isUpdateMode ? "update_button" : "save_button"
+    }
+
     private var canSave: Bool {
-        // choice だけ必須にする
-        choice != nil
+        // choice 必須
+        guard choice != nil else { return false }
+
+        // Updateのときは変更がないならdisabled
+        if isUpdateMode {
+            return hasChanges
+        } else {
+            return true
+        }
     }
 
     private func saveEntry() {
@@ -107,14 +135,13 @@ struct BetterNowMainView: View {
             choice: choice,
             caption: caption
         )
+        // 保存後、今日の基準を更新して「変更なし」を正しく判定できるようにする
+        existingEntry = store.entry(for: .now)
+
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-        withAnimation { showSavedToast = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            withAnimation { showSavedToast = false }
-        }
-
-        clearInputs(keepKeyboard: true)
+        // 保存後ログへ遷移
+        showLog = true
     }
 
     private func clearInputs(keepKeyboard: Bool = false) {
@@ -123,6 +150,25 @@ struct BetterNowMainView: View {
         choice = nil
 
         focus = keepKeyboard ? .action : nil
+    }
+    
+    private func applyExistingEntryIfNeeded() {
+        guard let entry = store.entry(for: .now) else { return }
+
+        // 既に今日の入力があれば、UIに反映
+        todayAction = entry.action
+        caption = entry.caption
+        choice = entry.choice
+    }
+    private func loadTodayIfExists() {
+        guard let entry = store.entry(for: .now) else {
+            existingEntry = nil
+            return
+        }
+        existingEntry = entry
+        todayAction = entry.action
+        caption = entry.caption
+        choice = entry.choice
     }
 }
 

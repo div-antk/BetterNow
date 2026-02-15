@@ -16,6 +16,7 @@
 import SwiftUI
 
 struct MainFooterButtonsView: View {
+    var primaryTitle: LocalizedStringKey
     var canSave: Bool
     var onClear: () -> Void
     var onSave: () -> Void
@@ -34,7 +35,7 @@ struct MainFooterButtonsView: View {
 
             // Save (right)
             Button(action: onSave) {
-                Text("save_button")
+                Text(primaryTitle)
                     .font(.system(.callout, design: .rounded).weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
@@ -53,8 +54,7 @@ struct MainFooterButtonsView: View {
 
 #Preview {
     VStack(spacing: 20) {
-        MainFooterButtonsView(canSave: false, onClear: {}, onSave: {})
-        MainFooterButtonsView(canSave: true, onClear: {}, onSave: {})
+        MainFooterButtonsView(primaryTitle: "test", canSave: false, onClear: {}, onSave: {})
     }
     .padding()
 }

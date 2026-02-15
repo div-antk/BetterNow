@@ -5,14 +5,6 @@
 //  Created by Takuya Ando on 2026/02/15.
 //
 
-
-//
-//  LogView.swift
-//  BetterNow
-//
-//  Created by Takuya Ando on 2026/02/15.
-//
-
 import SwiftUI
 
 /// Simple Log / Trend screen.
