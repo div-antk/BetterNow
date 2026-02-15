@@ -18,7 +18,9 @@ struct BetterNowMainView: View {
     @StateObject private var store = EntryStore()
     
     @State private var showSavedToast: Bool = false
+    @State private var showSettings = false
     @State private var showLog: Bool = false
+    
     // すでにEntry済かどうかの判定
     @State private var existingEntry: BetterEntry? = nil
     
@@ -31,7 +33,7 @@ struct BetterNowMainView: View {
             Color(.systemBackground).ignoresSafeArea()
 
             VStack(spacing: 16) {
-                MainHeaderView(showLog: $showLog)
+                MainHeaderView(showLog: $showLog, showSettings: $showSettings)
                 Spacer()
                 ChoiceButtonsView(choice: $choice)
                 MainCaptionFieldView(caption: $caption)
@@ -49,6 +51,7 @@ struct BetterNowMainView: View {
             .sheet(isPresented: $showLog) {
                 LogView(store: store)
             }
+            .sheet(isPresented: $showSettings) { SettingsView(store: store) }
             .onAppear {
                 applyExistingEntryIfNeeded()
             }

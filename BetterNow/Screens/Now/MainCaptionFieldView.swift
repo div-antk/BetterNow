@@ -14,22 +14,28 @@ struct MainCaptionFieldView: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        TextField("caption_placeholder", text: $caption)
-            .textInputAutocapitalization(.sentences)
-            .autocorrectionDisabled(false)
-            .submitLabel(.done)
-            .focused($isFocused)
-            .onSubmit { onSubmit() }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-            ).padding(.top, 40)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("caption_prompt")
+                .font(.system(.footnote, design: .rounded).weight(.medium))
+                .foregroundStyle(.secondary)
+            // TODO: 文字数制限
+            TextField("caption_placeholder", text: $caption)
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled(false)
+                .submitLabel(.done)
+                .focused($isFocused)
+                .onSubmit { onSubmit() }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                )
+        }.padding(.top, 32)
     }
 }
 

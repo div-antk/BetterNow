@@ -11,18 +11,16 @@ struct ChoiceButtonsView: View {
     @Binding var choice: BetterChoice?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("choice_prompt")
                 .font(.system(.footnote, design: .rounded).weight(.medium))
                 .foregroundStyle(.secondary)
-
             VStack(spacing: 12) {
                 ForEach(BetterChoice.allCases) { c in
                     choiceButton(c)
                 }
             }
         }
-        .padding(.top, 4)
     }
 
     // MARK: - Subviews
