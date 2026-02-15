@@ -5,14 +5,6 @@
 //  Created by Takuya Ando on 2026/02/15.
 //
 
-
-//
-//  MainFooterButtonsView.swift
-//  BetterNow
-//
-//  Created by Takuya Ando on 2026/02/15.
-//
-
 import SwiftUI
 
 struct MainFooterButtonsView: View {

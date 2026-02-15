@@ -13,7 +13,6 @@ import SwiftUI
 
 struct BetterNowMainView: View {
 
-    @State private var todayAction: String = ""
     @State private var caption: String = ""
     @State private var choice: BetterChoice? = nil
     @StateObject private var store = EntryStore()
@@ -25,7 +24,7 @@ struct BetterNowMainView: View {
     
     @FocusState private var focus: FocusField?
 
-    enum FocusField { case action, caption }
+    enum FocusField { case caption }
 
     var body: some View {
         ZStack {
@@ -101,7 +100,6 @@ struct BetterNowMainView: View {
         }
 
         // 変更判定（トリムして比較）
-        let actionNow = todayAction.trimmingCharacters(in: .whitespacesAndNewlines)
         let captionNow = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         let captionChanged = captionNow != existingEntry.caption
         let choiceChanged = choice != existingEntry.choice
@@ -131,7 +129,6 @@ struct BetterNowMainView: View {
 
         // TODO: SwiftData / CoreData / UserDefaults に差し替え
         store.save(
-            action: todayAction,
             choice: choice,
             caption: caption
         )
@@ -145,18 +142,16 @@ struct BetterNowMainView: View {
     }
 
     private func clearInputs(keepKeyboard: Bool = false) {
-        todayAction = ""
         caption = ""
         choice = nil
 
-        focus = keepKeyboard ? .action : nil
+//        focus = keepKeyboard ? .action : nil
     }
     
     private func applyExistingEntryIfNeeded() {
         guard let entry = store.entry(for: .now) else { return }
 
         // 既に今日の入力があれば、UIに反映
-        todayAction = entry.action
         caption = entry.caption
         choice = entry.choice
     }
@@ -166,7 +161,6 @@ struct BetterNowMainView: View {
             return
         }
         existingEntry = entry
-        todayAction = entry.action
         caption = entry.caption
         choice = entry.choice
     }

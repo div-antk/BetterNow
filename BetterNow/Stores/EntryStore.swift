@@ -20,16 +20,13 @@ final class EntryStore: ObservableObject {
         load()
     }
 
-    func save(action: String, choice: BetterChoice, caption: String, date: Date = .now) {
-        let trimmedAction = action.trimmingCharacters(in: .whitespacesAndNewlines)
+    func save(choice: BetterChoice, caption: String, date: Date = .now) {
         let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-
         let id = DateFormatters.dayKey(date) // "YYYY-MM-DD"
 
         let entry = BetterEntry(
             id: id,
             createdAt: date,
-            action: trimmedAction,
             choice: choice,
             caption: trimmedCaption
         )
@@ -43,7 +40,6 @@ final class EntryStore: ObservableObject {
 
         // 新しい順
         entries.sort { $0.id > $1.id }
-
         persist()
     }
 
@@ -80,5 +76,34 @@ final class EntryStore: ObservableObject {
     func entry(for date: Date = .now) -> BetterEntry? {
         let id = DateFormatters.dayKey(date)
         return entries.first(where: { $0.id == id })
+    }
+    
+    func seedTestData() {
+        let cal = Calendar.autoupdatingCurrent
+        let base = Date.now
+
+        let samples: [(daysAgo: Int, choice: BetterChoice, caption: String)] = [
+            (9, .up, "No energy"),
+            (8, .up, "Busy day"),
+            (7, .up, "Felt strong"),
+            (6, .up, ""),
+            (5, .up, "Good focus"),
+            (4, .up, "Slept badly"),
+            (3, .up, "Nice pace"),
+            (2, .up, "Okay"),
+            (1, .up, "Kept going"),
+            (0, .up, "Today")
+        ]
+
+        for s in samples {
+            if let date = cal.date(byAdding: .day, value: -s.daysAgo, to: base) {
+                save(choice: s.choice, caption: s.caption, date: date)
+            }
+        }
+    }
+
+    func clearAll() {
+        entries.removeAll()
+        persist()
     }
 }
