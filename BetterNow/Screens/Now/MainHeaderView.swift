@@ -16,7 +16,7 @@ struct MainHeaderView: View {
         HStack(spacing: 12) {
             appMarkPlaceholder
 
-            Text(DateFormatters.headerDateCompact(date))                .font(.system(.title3, design: .rounded).weight(.semibold))
+            Text(DateFormatters.headerDateCompact(date))                .font(.system(.title3, design: .rounded).weight(.black))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
 

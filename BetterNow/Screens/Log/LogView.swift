@@ -33,7 +33,6 @@ struct LogView: View {
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
             }
-            .navigationTitle("log_title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
