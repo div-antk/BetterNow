@@ -5,14 +5,6 @@
 //  Created by Takuya Ando on 2026/02/15.
 //
 
-
-//
-//  DateFormatters.swift
-//  BetterNow
-//
-//  Created by Takuya Ando on 2026/02/15.
-//
-
 import Foundation
 
 /// Centralised date formatting utilities.
@@ -63,5 +55,37 @@ enum DateFormatters {
         let mm = String(format: "%02d", m)
         let dd = String(format: "%02d", d)
         return "\(y)-\(mm)-\(dd)"
+    }
+
+    /// Parse a persisted dayKey (YYYY-MM-DD) into a Date at the start of that day (00:00).
+    /// Returns nil if the key is invalid.
+    static func dateFromDayKey(_ dayKey: String,
+                               timeZone: TimeZone = .autoupdatingCurrent) -> Date? {
+
+        let parts = dayKey.split(separator: "-")
+        guard parts.count == 3,
+              let y = Int(parts[0]),
+              let m = Int(parts[1]),
+              let d = Int(parts[2]) else { return nil }
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = timeZone
+
+        var comps = DateComponents()
+        comps.year = y
+        comps.month = m
+        comps.day = d
+        comps.hour = 0
+        comps.minute = 0
+        comps.second = 0
+
+        return cal.date(from: comps)
+    }
+
+    /// Prefer dayKey parsing; fallback to createdAt.
+    static func dateForEntry(id: String,
+                             createdAt: Date,
+                             timeZone: TimeZone = .autoupdatingCurrent) -> Date {
+        dateFromDayKey(id, timeZone: timeZone) ?? createdAt
     }
 }

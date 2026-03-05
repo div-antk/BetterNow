@@ -12,6 +12,11 @@ import UIKit
 /// - String Catalog (Localizable.xcstrings) 前提：Text("key") の形でキーを参照
 /// - Light/Dark は systemBackground / primary などのシステム色に寄せて自動追従
 
+// TODO: Mainに昨日のエントリを載せる
+// TODO: Splash画面作成
+// TODO: AppleWatch対応
+// TODO: Widget対応
+
 struct BetterNowMainView: View {
 
     @State private var caption: String = ""
@@ -46,7 +51,10 @@ struct BetterNowMainView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)
-            .sheet(isPresented: $showLog) {
+            .sheet(isPresented: $showLog, onDismiss: {
+                // Log画面で編集された内容をMain画面に反映する
+                loadTodayIfExists()
+            }) {
                 LogView(store: store)
             }
             .sheet(isPresented: $showSettings) { SettingsView(store: store) }
