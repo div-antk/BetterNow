@@ -84,7 +84,7 @@ final class EntryStore: ObservableObject {
 
         let samples: [(daysAgo: Int, choice: BetterChoice, caption: String)] = [
             (9, .up, "No energy"),
-            (8, .up, "Busy day"),
+            (8, .skipped, "Busy day"),
             (7, .up, "Felt strong"),
             (6, .up, ""),
             (5, .up, "Good focus"),

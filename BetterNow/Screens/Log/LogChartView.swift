@@ -12,6 +12,7 @@ import Charts
 
 // - 直近7日間を表示
 // - 欠け日は same(0) として補間
+// - skip は値を進めず、ポイントだけを表示して線を分断
 // - 値は up(+1) / same(0) / down(-1) の累積スコア
 // - Y軸は直近7日間の最小/最大値を基準に ±2 の余白を取る
 // - X軸は曜日を7日ぶん必ず表示
@@ -43,22 +44,27 @@ struct LogChartView: View {
     // MARK: - Chart
 
     private var chart: some View {
-        Chart(last7ChartPoints) { p in
-            // 累積スコアの折れ線（直線）
-            LineMark(
-                x: .value("Date", p.date),
-                y: .value("Better", p.value)
-            )
-            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            .foregroundStyle(Color.accentColor)
+        Chart {
+            ForEach(last7LineSegments) { segment in
+                ForEach(segment.points) { point in
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Better", point.value),
+                        series: .value("Segment", segment.id)
+                    )
+                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(Color.accentColor)
+                }
+            }
 
-            // 各日のポイント表示
-            PointMark(
-                x: .value("Date", p.date),
-                y: .value("Better", p.value)
-            )
-            .symbolSize(64)
-            .foregroundStyle(Color.accentColor)
+            ForEach(last7ChartPoints) { point in
+                PointMark(
+                    x: .value("Date", point.date),
+                    y: .value("Better", point.value)
+                )
+                .symbolSize(point.isSkipped ? 80 : 64)
+                .foregroundStyle(point.isSkipped ? Color.secondary : Color.accentColor)
+            }
         }
         // 両端の丸が切れないように、X軸の表示範囲に半日ぶんの余白を足す
         .chartXScale(domain: xDomain)
@@ -78,7 +84,7 @@ struct LogChartView: View {
 
         // X軸は曜日表示（直近7日ぶんを必ず出す）
         .chartXAxis {
-            AxisMarks(values: last7ChartPoints.map(\.date)) { value in
+            AxisMarks(values: last7Days) { value in
                 AxisGridLine().foregroundStyle(.secondary.opacity(0.12))
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
@@ -115,45 +121,82 @@ struct LogChartView: View {
         )) ?? .now
     }
 
-    // 直近7日間の累積データ（欠け日は same(0) として補間）
+    // 直近7日間の累積データ（欠け日は same(0) として補間、skip は線を切る）
     private var last7ChartPoints: [ChartPoint] {
 
         let cal = Calendar.autoupdatingCurrent
-        let today = anchorTodayNoon
-
-        // 直近7日間の日付配列を生成
-        let days: [Date] = (0...6).compactMap {
-            cal.date(byAdding: .day, value: -$0, to: today)
-        }.sorted()
+        let days = last7Days
 
         // 日付 -> choice の辞書を作る（保存キーは YYYY-MM-DD）
-        let entryMap: [String: BetterChoice] = Dictionary(
-            uniqueKeysWithValues: entries.map { ($0.id, $0.choice) }
+        let entryMap: [String: BetterEntry] = Dictionary(
+            uniqueKeysWithValues: entries.map { ($0.id, $0) }
         )
 
         var total: Double = 0
         var result: [ChartPoint] = []
+        var nextSegmentID = 0
+        var currentSegmentID: String?
 
         for day in days {
             // X軸のズレ防止のため、その日の開始（0:00）に揃える
             let startOfDay = cal.startOfDay(for: day)
             let key = DateFormatters.dayKey(startOfDay)
 
-            // 欠け日は same(0) として扱う
-            let choice = entryMap[key] ?? .same
+            let choice = entryMap[key]?.choice ?? .same
+            let isSkipped = choice == .skipped
 
-            total += Double(choice.rawValue)
+            if isSkipped {
+                currentSegmentID = nil
+            } else if currentSegmentID == nil {
+                nextSegmentID += 1
+                currentSegmentID = "segment-\(nextSegmentID)"
+            }
+
+            total += Double(choice.deltaValue)
 
             result.append(
                 ChartPoint(
                     id: key,
                     date: startOfDay,
-                    value: total
+                    value: total,
+                    segmentID: isSkipped ? nil : currentSegmentID,
+                    isSkipped: isSkipped
                 )
             )
         }
 
         return result
+    }
+
+    private var last7LineSegments: [ChartSegment] {
+        Dictionary(grouping: last7ChartPoints.compactMap { point -> (String, ChartPoint)? in
+            guard let segmentID = point.segmentID else { return nil }
+            return (segmentID, point)
+        }, by: \.0)
+        .map { segmentID, values in
+            ChartSegment(
+                id: segmentID,
+                points: values.map(\.1).sorted { $0.date < $1.date }
+            )
+        }
+        .sorted { lhs, rhs in
+            guard let leftDate = lhs.points.first?.date,
+                  let rightDate = rhs.points.first?.date else {
+                return lhs.id < rhs.id
+            }
+            return leftDate < rightDate
+        }
+    }
+
+    private var last7Days: [Date] {
+        let cal = Calendar.autoupdatingCurrent
+        let today = anchorTodayNoon
+
+        return (0...6).compactMap {
+            cal.date(byAdding: .day, value: -$0, to: today)
+        }
+        .map { cal.startOfDay(for: $0) }
+        .sorted()
     }
 
     // 両端のポイントが切れないように、X軸の表示範囲に余白を追加
@@ -198,10 +241,14 @@ struct LogChartView: View {
         let id: String
         let date: Date
         let value: Double
+        let segmentID: String?
+        let isSkipped: Bool
     }
 
-    // 固定のマゼンタ色（ライト/ダーク共通）
-    private static let healthMagenta = Color(red: 0.82, green: 0.18, blue: 0.86)
+    private struct ChartSegment: Identifiable {
+        let id: String
+        let points: [ChartPoint]
+    }
 }
 
 #Preview {

@@ -73,6 +73,8 @@ struct LogEntryRowView: View {
 
     private func color(for choice: BetterChoice) -> Color {
         switch choice {
+        case .skipped:
+            return Color.secondary.opacity(0.8)
         case .up:
             return .accentColor
         case .same:
