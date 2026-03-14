@@ -46,14 +46,22 @@ struct LogChartView: View {
     private var chart: some View {
         Chart {
             ForEach(last7LineSegments) { segment in
-                ForEach(segment.points) { point in
+                ForEach(segment.lineRuns) { run in
                     LineMark(
-                        x: .value("Date", point.date),
-                        y: .value("Better", point.value),
-                        series: .value("Segment", segment.id)
+                        x: .value("Date", run.start.date),
+                        y: .value("Better", run.start.value),
+                        series: .value("Segment", run.id)
                     )
-                    .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                    .foregroundStyle(Color.accentColor)
+                    .lineStyle(StrokeStyle(lineWidth: run.lineWidth, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(run.color)
+
+                    LineMark(
+                        x: .value("Date", run.end.date),
+                        y: .value("Better", run.end.value),
+                        series: .value("Segment", run.id)
+                    )
+                    .lineStyle(StrokeStyle(lineWidth: run.lineWidth, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(run.color)
                 }
             }
 
@@ -62,8 +70,8 @@ struct LogChartView: View {
                     x: .value("Date", point.date),
                     y: .value("Better", point.value)
                 )
-                .symbolSize(point.isSkipped ? 80 : 64)
-                .foregroundStyle(point.isSkipped ? Color.secondary : Color.accentColor)
+                .symbolSize(point.isSkipped ? 80 : 52)
+                .foregroundStyle(pointColor(for: point))
             }
         }
         // 両端の丸が切れないように、X軸の表示範囲に半日ぶんの余白を足す
@@ -75,17 +83,17 @@ struct LogChartView: View {
         // 右側にY軸表示
         .chartYAxis {
             AxisMarks(position: .trailing, values: yAxisValues) { _ in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.20))
+                AxisGridLine().foregroundStyle(.secondary.opacity(0.12))
                 AxisValueLabel()
                     .font(.system(.caption2, design: .rounded))
-                    .foregroundStyle(Color.gray)
+                    .foregroundStyle(Color.secondary.opacity(0.8))
             }
         }
 
         // X軸は曜日表示（直近7日ぶんを必ず出す）
         .chartXAxis {
             AxisMarks(values: last7Days) { value in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.12))
+                AxisGridLine().foregroundStyle(.secondary.opacity(0.08))
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
                         Text(date.formatted(.dateTime.weekday(.narrow)))
@@ -96,7 +104,7 @@ struct LogChartView: View {
                     }
                 }
                 .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(Color.gray)
+                .foregroundStyle(Color.secondary.opacity(0.8))
             }
         }
         // プロット領域（グラフ描画部分）を確実にクリップ
@@ -174,9 +182,17 @@ struct LogChartView: View {
             return (segmentID, point)
         }, by: \.0)
         .map { segmentID, values in
-            ChartSegment(
+            let points = values.map(\.1).sorted { $0.date < $1.date }
+            return ChartSegment(
                 id: segmentID,
-                points: values.map(\.1).sorted { $0.date < $1.date }
+                points: points,
+                lineRuns: zip(points, points.dropFirst()).enumerated().map { index, pair in
+                    ChartLineRun(
+                        id: "\(segmentID)-\(index)",
+                        start: pair.0,
+                        end: pair.1
+                    )
+                }
             )
         }
         .sorted { lhs, rhs in
@@ -237,6 +253,14 @@ struct LogChartView: View {
         return Array(lower...upper)
     }
 
+    private func pointColor(for point: ChartPoint) -> Color {
+        if point.isSkipped {
+            return Color.secondary.opacity(0.45)
+        }
+
+        return Color.accentColor.opacity(0.72)
+    }
+
     private struct ChartPoint: Identifiable {
         let id: String
         let date: Date
@@ -248,6 +272,39 @@ struct LogChartView: View {
     private struct ChartSegment: Identifiable {
         let id: String
         let points: [ChartPoint]
+        let lineRuns: [ChartLineRun]
+    }
+
+    private struct ChartLineRun: Identifiable {
+        let id: String
+        let start: ChartPoint
+        let end: ChartPoint
+
+        var delta: Double {
+            end.value - start.value
+        }
+
+        var color: Color {
+            switch delta {
+            case let value where value > 0:
+                return Color.accentColor.opacity(0.95)
+            case let value where value < 0:
+                return Color.accentColor.opacity(0.22)
+            default:
+                return Color.accentColor.opacity(0.38)
+            }
+        }
+
+        var lineWidth: CGFloat {
+            switch delta {
+            case let value where value > 0:
+                return 2.8
+            case let value where value < 0:
+                return 1.4
+            default:
+                return 1.8
+            }
+        }
     }
 }
 

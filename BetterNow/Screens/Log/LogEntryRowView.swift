@@ -80,7 +80,7 @@ struct LogEntryRowView: View {
         case .same:
             return .secondary
         case .down:
-            return .red
+            return .secondary
         }
     }
 }
