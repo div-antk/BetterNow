@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct BetterNowApp: App {
     @State private var showsSplash = true
+    @StateObject private var reminderStore = ReminderSettingsStore()
 
     var body: some Scene {
         WindowGroup {
@@ -28,6 +29,12 @@ struct BetterNowApp: App {
                 withAnimation(.easeInOut(duration: 0.35)) {
                     showsSplash = false
                 }
+            }
+            .task {
+                await ReminderNotificationManager.syncNotifications(
+                    isEnabled: reminderStore.isEnabled,
+                    reminderTime: reminderStore.reminderTime
+                )
             }
         }
     }
