@@ -48,6 +48,7 @@ struct ChoiceButtonsView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 64)
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(LocalizedStringKey(c.a11yKey)))

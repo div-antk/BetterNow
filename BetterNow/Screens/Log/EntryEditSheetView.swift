@@ -125,6 +125,7 @@ struct EntryEditSheetView: View {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(borderColor(for: c, isSelected: isSelected), lineWidth: borderWidth(for: c, isSelected: isSelected))
             )
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(LocalizedStringKey(c.a11yKey)))
