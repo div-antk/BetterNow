@@ -148,13 +148,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Better today?"
+            "value" : "How did today feel compared with yesterday?"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日は昨日と比べて…"
+            "value" : "今日は、昨日に比べてどうでしたか？"
           }
         }
       }

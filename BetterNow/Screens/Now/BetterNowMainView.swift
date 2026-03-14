@@ -47,7 +47,7 @@ struct BetterNowMainView: View {
                     onClear: { clearInputs() },
                     onSave: { saveEntry() }
                 )
-                Spacer(minLength: 0)
+                Spacer()
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)

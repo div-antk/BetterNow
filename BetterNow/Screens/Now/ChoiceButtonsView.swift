@@ -12,9 +12,8 @@ struct ChoiceButtonsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("choice_prompt")
-                .font(.system(.footnote, design: .rounded).weight(.medium))
-                .foregroundStyle(.secondary)
+            PromptBubbleView()
+                .padding(.bottom, 24)
             VStack(spacing: 12) {
                 ForEach(BetterChoice.allCases) { c in
                     choiceButton(c)
@@ -27,7 +26,6 @@ struct ChoiceButtonsView: View {
 
     private func choiceButton(_ c: BetterChoice) -> some View {
         let isSelected = (choice == c)
-        let isSkipped = c == .skipped
 
         return Button {
             withAnimation(.easeInOut(duration: 0.15)) {
