@@ -11,8 +11,8 @@ import Charts
 // ログ画面の上部に表示する折れ線グラフ
 
 // - 直近7日間を表示
-// - 欠け日は same(0) として補間
-// - skip は値を進めず、ポイントだけを表示して線を分断
+// - 未記入日は skip として扱う
+// - skip は値を進めず、ポイントだけを表示する
 // - 値は up(+1) / same(0) / down(-1) の累積スコア
 // - Y軸は直近7日間の最小/最大値を基準に ±2 の余白を取る
 // - X軸は曜日を7日ぶん必ず表示
@@ -129,7 +129,9 @@ struct LogChartView: View {
         )) ?? .now
     }
 
-    // 直近7日間の累積データ（欠け日は same(0) として補間、skip は線を切る）
+    // 直近7日間の累積データ
+    // - 未記入日は skip として扱う
+    // - skip は値を進めずポイントだけを表示する
     private var last7ChartPoints: [ChartPoint] {
 
         let cal = Calendar.autoupdatingCurrent
@@ -142,23 +144,14 @@ struct LogChartView: View {
 
         var total: Double = 0
         var result: [ChartPoint] = []
-        var nextSegmentID = 0
-        var currentSegmentID: String?
 
         for day in days {
             // X軸のズレ防止のため、その日の開始（0:00）に揃える
             let startOfDay = cal.startOfDay(for: day)
             let key = DateFormatters.dayKey(startOfDay)
-
-            let choice = entryMap[key]?.choice ?? .same
+            let entry = entryMap[key]
+            let choice = entry?.choice ?? .skipped
             let isSkipped = choice == .skipped
-
-            if isSkipped {
-                currentSegmentID = nil
-            } else if currentSegmentID == nil {
-                nextSegmentID += 1
-                currentSegmentID = "segment-\(nextSegmentID)"
-            }
 
             total += Double(choice.deltaValue)
 
@@ -167,7 +160,6 @@ struct LogChartView: View {
                     id: key,
                     date: startOfDay,
                     value: total,
-                    segmentID: isSkipped ? nil : currentSegmentID,
                     isSkipped: isSkipped
                 )
             )
@@ -177,30 +169,20 @@ struct LogChartView: View {
     }
 
     private var last7LineSegments: [ChartSegment] {
-        Dictionary(grouping: last7ChartPoints.compactMap { point -> (String, ChartPoint)? in
-            guard let segmentID = point.segmentID else { return nil }
-            return (segmentID, point)
-        }, by: \.0)
-        .map { segmentID, values in
-            let points = values.map(\.1).sorted { $0.date < $1.date }
+        zip(last7ChartPoints, last7ChartPoints.dropFirst()).enumerated().compactMap { index, pair in
+            // skip に入る線は切るが、skip から再開する線はつなぐ
+            guard !pair.1.isSkipped else { return nil }
+
             return ChartSegment(
-                id: segmentID,
-                points: points,
-                lineRuns: zip(points, points.dropFirst()).enumerated().map { index, pair in
+                id: "segment-\(index)",
+                lineRuns: [
                     ChartLineRun(
-                        id: "\(segmentID)-\(index)",
+                        id: "segment-\(index)-run",
                         start: pair.0,
                         end: pair.1
                     )
-                }
+                ]
             )
-        }
-        .sorted { lhs, rhs in
-            guard let leftDate = lhs.points.first?.date,
-                  let rightDate = rhs.points.first?.date else {
-                return lhs.id < rhs.id
-            }
-            return leftDate < rightDate
         }
     }
 
@@ -265,13 +247,11 @@ struct LogChartView: View {
         let id: String
         let date: Date
         let value: Double
-        let segmentID: String?
         let isSkipped: Bool
     }
 
     private struct ChartSegment: Identifiable {
         let id: String
-        let points: [ChartPoint]
         let lineRuns: [ChartLineRun]
     }
 

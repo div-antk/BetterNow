@@ -20,7 +20,7 @@ struct SplashView: View {
                 appLogoImage
                     .frame(width: 160, height: 160)
 
-                Text("app_name")
+                Text("Better Now")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
             }

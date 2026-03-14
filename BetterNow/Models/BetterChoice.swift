@@ -36,15 +36,6 @@ enum BetterChoice: Int, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
-    var shortLabelKey: String {
-        switch self {
-        case .skipped: return "better_choice_skip"
-        case .up: return "better_choice_up"
-        case .same: return "better_choice_same"
-        case .down: return "better_choice_down"
-        }
-    }
-
     /// Accessibility label key (String Catalog key).
     var a11yKey: String {
         switch self {
