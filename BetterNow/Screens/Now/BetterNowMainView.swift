@@ -45,8 +45,25 @@ struct BetterNowMainView: View {
                     VStack(spacing: 0) {
                         MainHeaderView(showLog: $showLog, showSettings: $showSettings)
                             .padding(.horizontal, 24)
-                            .padding(.top, 16)
-                            .padding(.bottom, 10)
+                            .padding(.top, 8)
+                            .background {
+                                ZStack(alignment: .bottom) {
+                                    Color(.systemBackground)
+
+                                    LinearGradient(
+                                        colors: [
+                                            Color(.systemBackground),
+                                            Color(.systemBackground).opacity(0.92),
+                                            Color(.systemBackground).opacity(0.0)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                    .frame(height: 24)
+                                    .offset(y: 24)
+                                }
+                            }
+                            .zIndex(1)
 
                         ScrollView(showsIndicators: false) {
                             VStack(spacing: 16) {
@@ -66,7 +83,7 @@ struct BetterNowMainView: View {
                                 alignment: .top
                             )
                             .padding(.horizontal, 24)
-                            .padding(.top, 14)
+                            .padding(.top, 36)
                             .padding(.bottom, keyboardInset(for: proxy) + 16)
                         }
                         .scrollDismissesKeyboard(.interactively)
