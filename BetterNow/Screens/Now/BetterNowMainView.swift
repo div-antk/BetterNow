@@ -18,6 +18,9 @@ import UIKit
 // TODO: Widget対応
 
 struct BetterNowMainView: View {
+    private enum ScrollTarget {
+        static let captionField = "caption-field"
+    }
 
     @State private var caption: String = ""
     @State private var choice: BetterChoice? = nil
@@ -31,53 +34,81 @@ struct BetterNowMainView: View {
 
     // キーボード表示状態（背景タップで閉じる＆誤タップ防止用）
     @State private var isKeyboardVisible: Bool = false
+    @State private var keyboardHeight: CGFloat = 0
 
     var body: some View {
-        ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+        GeometryReader { proxy in
+            ScrollViewReader { scrollProxy in
+                ZStack {
+                    Color(.systemBackground).ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                MainHeaderView(showLog: $showLog, showSettings: $showSettings)
-                Spacer()
-                ChoiceButtonsView(choice: $choice)
-                MainCaptionFieldView(caption: $caption)
-                MainFooterButtonsView(
-                    primaryTitle: primaryButtonTitleKey,
-                    canSave: canSave,
-                    onClear: { clearInputs() },
-                    onSave: { saveEntry() }
-                )
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .sheet(isPresented: $showLog, onDismiss: {
-                // Log画面で編集された内容をMain画面に反映する
-                loadTodayIfExists()
-            }) {
-                LogView(store: store)
-            }
-            .sheet(isPresented: $showSettings) { SettingsView(store: store) }
-            .onAppear {
-                loadTodayIfExists()
-            }
+                    VStack(spacing: 0) {
+                        MainHeaderView(showLog: $showLog, showSettings: $showSettings)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 16)
+                            .padding(.bottom, 10)
 
-            // キーボード表示中は画面全体を透明レイヤーで覆う
-            // → 背景タップでキーボードを閉じる & 下のボタン誤タップを防ぐ
-            if isKeyboardVisible {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        dismissKeyboard()
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 16) {
+                                ChoiceButtonsView(choice: $choice)
+                                MainCaptionFieldView(caption: $caption)
+                                    .id(ScrollTarget.captionField)
+                                MainFooterButtonsView(
+                                    primaryTitle: primaryButtonTitleKey,
+                                    canSave: canSave,
+                                    onClear: { clearInputs() },
+                                    onSave: { saveEntry() }
+                                )
+                                Spacer(minLength: isKeyboardVisible ? 12 : 0)
+                            }
+                            .frame(
+                                minHeight: max(proxy.size.height - keyboardInset(for: proxy) - 88, 0),
+                                alignment: .top
+                            )
+                            .padding(.horizontal, 24)
+                            .padding(.top, 14)
+                            .padding(.bottom, keyboardInset(for: proxy) + 16)
+                        }
+                        .scrollDismissesKeyboard(.interactively)
                     }
+                    .sheet(isPresented: $showLog, onDismiss: {
+                        // Log画面で編集された内容をMain画面に反映する
+                        loadTodayIfExists()
+                    }) {
+                        LogView(store: store)
+                    }
+                    .sheet(isPresented: $showSettings) { SettingsView(store: store) }
+                    .onAppear {
+                        loadTodayIfExists()
+                    }
+                    .onChange(of: isKeyboardVisible) { _, isVisible in
+                        guard isVisible else { return }
+
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            scrollProxy.scrollTo(ScrollTarget.captionField, anchor: .center)
+                        }
+                    }
+
+                    // キーボード表示中は画面全体を透明レイヤーで覆う
+                    // → 背景タップでキーボードを閉じる & 下のボタン誤タップを防ぐ
+                    if isKeyboardVisible {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                dismissKeyboard()
+                            }
+                    }
+                }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            keyboardHeight = keyboardHeight(from: notification)
             isKeyboardVisible = true
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             isKeyboardVisible = false
+            keyboardHeight = 0
         }
     }
 
@@ -156,6 +187,20 @@ struct BetterNowMainView: View {
                                         to: nil,
                                         from: nil,
                                         for: nil)
+    }
+
+    private func keyboardHeight(from notification: Notification) -> CGFloat {
+        guard
+            let frameValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue
+        else {
+            return 0
+        }
+
+        return frameValue.cgRectValue.height
+    }
+
+    private func keyboardInset(for proxy: GeometryProxy) -> CGFloat {
+        max(0, keyboardHeight - proxy.safeAreaInsets.bottom)
     }
 }
 
