@@ -32,9 +32,10 @@ struct LogEntryRowView: View {
                         Text(entry.caption)
                             .font(.system(.callout, design: .rounded))
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 0)
 
