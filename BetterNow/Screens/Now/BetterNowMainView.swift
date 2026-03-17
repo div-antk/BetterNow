@@ -42,6 +42,15 @@ struct BetterNowMainView: View {
                 ZStack {
                     Color(.systemBackground).ignoresSafeArea()
 
+                    if isKeyboardVisible {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                dismissKeyboard()
+                            }
+                    }
+
                     VStack(spacing: 0) {
                         MainHeaderView(showLog: $showLog, showSettings: $showSettings)
                             .padding(.horizontal, 24)
@@ -104,17 +113,6 @@ struct BetterNowMainView: View {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             scrollProxy.scrollTo(ScrollTarget.captionField, anchor: .center)
                         }
-                    }
-
-                    // キーボード表示中は画面全体を透明レイヤーで覆う
-                    // → 背景タップでキーボードを閉じる & 下のボタン誤タップを防ぐ
-                    if isKeyboardVisible {
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                dismissKeyboard()
-                            }
                     }
                 }
             }
